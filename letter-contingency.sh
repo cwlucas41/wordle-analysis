@@ -16,11 +16,11 @@ do
     # this is so when the contingent letter is the same as the given letter it is matching a different instance of the letter
     relevantWords=$(echo "$words" | grep "$givenLetter" | sed "s/${givenLetter}//")
     
-    line=("$givenLetter")
+    line=()
     for contingentLetter in {a..z}
     do
         count=$(echo "$relevantWords" | grep "$contingentLetter" | wc -l)
         line+=("$count")
     done
-    echo $(IFS=, ; echo "${line[*]}")
+    echo $(IFS=, ; echo "${givenLetter},${line[*]}")
 done
