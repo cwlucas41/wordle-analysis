@@ -37,6 +37,10 @@ def run(args):
     hard = args.hard
     override_answer = args.answer
 
+    if mode == Mode.BENCHMARK and override_answer:
+        print(f'providing an override answer is not compatible with {mode} mode')
+        exit(1)
+
     valid_words = get_words(VALID_FILENAME)
     answers = get_words(ANSWER_FILENAME)
 
