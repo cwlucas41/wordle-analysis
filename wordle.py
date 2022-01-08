@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
+import argparse
+import math
 
 from random import choice
 from itertools import repeat
-import math
 from multiprocessing import Pool, freeze_support
+from textwrap import dedent
 
 from wordle_common import VALID_FILENAME, ANSWER_FILENAME, Mode, get_words
 from wordle_play import play
@@ -28,25 +30,33 @@ def benchmark(mode, answers, valid_words):
         else:
             print(f'L: {len(words)} - {sorted(list(words))}')
 
-def run(mode, debug):
-    valid_words = get_words(VALID_FILENAME)
-    wordle_answers = get_words(ANSWER_FILENAME)
+def run(args):
+    mode = args.mode
+    verbose = args.verbose
 
-    # TODO: flag for answer set
-    answers = wordle_answers
+    valid_words = get_words(VALID_FILENAME)
+    answers = get_words(ANSWER_FILENAME)
+
     answer = choice(list(answers))
 
     if mode == Mode.BENCHMARK:
-        benchmark(mode, wordle_answers, valid_words)
+        benchmark(mode, answers, valid_words)
     else:
-        play(mode, answer, valid_words, debug)
+        play(mode, answer, valid_words, verbose)
 
 if __name__ == '__main__':
     freeze_support()
 
-    mode = Mode.BENCHMARK
-    debug = False
+    arg_parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+    arg_parser.add_argument('-m', '--mode', type=Mode, choices=list(Mode), default=Mode.SOLVER.value,
+        help=dedent('''\
+            Choose running mode.
+            - "play" for a human to play
+            - "solver" (default) for the solving algorithm to play
+            - "benchmark" for the solver to play over all possible ansers and print summary
+            '''))
+    arg_parser.add_argument('-v', '--verbose', action='store_true',
+        help='increase output verbosity',)
+    args = arg_parser.parse_args()
 
-    run(mode, debug)
-
-
+    run(args)

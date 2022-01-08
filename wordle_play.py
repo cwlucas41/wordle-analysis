@@ -40,12 +40,12 @@ def print_result(guess, score: State):
         print(f'{color} {letter} {Style.RESET_ALL}', end='')
     print()
 
-def play(mode, answer, valid_words, debug=False):
+def play(mode, answer, valid_words, verbose=False):
     won = False
     guess = None
     state = None
     for round_number in range(1, ROUNDS + 1):
-        if state and debug:
+        if state and verbose:
             print(f'total green: "{"".join(state.green)}"')
             print(f'total yellow: {sorted(state.yellow)}')
             print(f'total gray: {sorted(list(state.grey))}')

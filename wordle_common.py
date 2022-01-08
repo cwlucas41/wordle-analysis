@@ -15,9 +15,12 @@ class State:
     guesses: set
 
 class Mode(Enum):
-    INTERACTIVE = 1
-    SOLVER = 2
-    BENCHMARK = 3
+    INTERACTIVE = 'play'
+    SOLVER = 'solver'
+    BENCHMARK = 'benchmark'
+
+    def __str__(self):
+        return self.value
     
 def get_words(filename):
     with open(filename, 'r') as f:
