@@ -3,7 +3,7 @@
 import string
 import re
 
-from wordle_common import WORD_LENGTH, ROUNDS, State
+from wordle_common import WORD_LENGTH, ROUNDS, VALID_FILENAME, State
 
 def positional_frequency(words):
     table = dict()
