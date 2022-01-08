@@ -1,12 +1,24 @@
-from colorama import Fore, Back, Style
 import math
+import re
+
+from colorama import Fore, Back, Style
 
 from wordle_common import WORD_LENGTH, ROUNDS, Mode, State, get_words
 from wordle_score import score_guess, combine_scores
 from wordle_solver import best_word
 
+def validate_guess_hard_mode(guess, state):
+    if state == None:
+        return True
 
-def get_guess(mode, valid_words, state, round_number):
+    green_yellow = [letter for letter in state.green + state.yellow if letter != '.']
+    
+    uses_greens = re.compile(f'^{"".join(state.green)}$').match(guess)
+    uses_yellows = all(guess.count(letter) >= green_yellow.count(letter) for letter in green_yellow)
+    # hard mode does not enforce other constraints like greys, negative yellows, or repeated words
+    return uses_yellows and uses_greens
+
+def get_guess(mode, valid_words, hard, state, round_number):
     guess = None 
     if mode == Mode.INTERACTIVE:
         guess = input("Guess: ").lower()
@@ -19,11 +31,15 @@ def get_guess(mode, valid_words, state, round_number):
 
     if len(guess) != WORD_LENGTH:
         print(f'guess must be {WORD_LENGTH} letters long')
-        return get_guess(mode, valid_words, state)
+        return get_guess(mode, valid_words, hard, state, round_number)
     
     if guess not in valid_words:
         print(f'{guess} is not a valid word')
-        return get_guess(mode, valid_words, state)
+        return get_guess(mode, valid_words, hard, state, round_number)
+
+    if hard and not validate_guess_hard_mode(guess, state):
+        print('word did not use all previous hints which is required in hard mode')
+        return get_guess(mode, valid_words, hard, state, round_number)
 
     return guess
 
@@ -40,7 +56,7 @@ def print_result(guess, score: State):
         print(f'{color} {letter} {Style.RESET_ALL}', end='')
     print()
 
-def play(mode, answer, valid_words, verbose=False):
+def play(mode, answer, valid_words, hard, verbose=False):
     won = False
     guess = None
     state = None
@@ -51,7 +67,7 @@ def play(mode, answer, valid_words, verbose=False):
             print(f'total gray: {sorted(list(state.grey))}')
             print(f'total yellow neg: {state.yellow_negative}')
 
-        guess = get_guess(mode, valid_words, state, round_number)
+        guess = get_guess(mode, valid_words, hard, state, round_number)
 
         score = score_guess(guess, answer)
 
