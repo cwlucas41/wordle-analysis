@@ -35,11 +35,16 @@ def run(args):
     mode = args.mode
     verbose = args.verbose
     hard = args.hard
+    override_answer = args.answer
 
     valid_words = get_words(VALID_FILENAME)
     answers = get_words(ANSWER_FILENAME)
 
-    answer = choice(list(answers))
+    answer = override_answer or choice(list(answers))
+
+    if answer not in valid_words:
+        print(f'"{answer}" is not in the valid word list')
+        exit(1)
 
     if mode == Mode.BENCHMARK:
         benchmark(mode, answers, valid_words, hard)
@@ -57,6 +62,8 @@ if __name__ == '__main__':
             - "solver" (default) for the solving algorithm to play
             - "benchmark" for the solver to play over all possible ansers and print summary
             '''))
+    arg_parser.add_argument('-a', '--answer', type=str,
+        help='sets the answer word - usefull for debugging a specific case')
     arg_parser.add_argument('-h', '--hard', action='store_true',
         help='enable hard mode (any revealed hints must be used in subsequent guesses)')
     arg_parser.add_argument('-v', '--verbose', action='store_true',
