@@ -1,10 +1,9 @@
+#!/usr/bin/env python3
+
 import string
 import re
 
-from wordle_common import State
-
-# TODO: remove?
-WORD_LENGTH = 5
+from wordle_common import WORD_LENGTH, ROUNDS, State
 
 def positional_frequency(words):
     table = dict()
@@ -21,6 +20,9 @@ def words_with_unique_letters(words):
     return {word for word in words if len(word) == len(set(word))}
 
 def score(words):
+    if len(words) == 0:
+        return []
+
     positional_frequencies = positional_frequency(words)
 
     scores = []
@@ -30,57 +32,95 @@ def score(words):
             # better idea - contingencies among word corpus
 
             times_letter_seen_so_far = word[:i+1].count(letter)
-            factor = 1 / 10 ** (times_letter_seen_so_far - 1)
+            factor = 1 #/ 5 ** (times_letter_seen_so_far - 1)
 
             score = score + positional_frequencies[i][letter] * factor
         scores.append((word, score))
     
-    return sorted(scores, key=lambda score: score[1])
+    return scores
 
-def reduce_and_score(words, state: State):
+def reduce_by_state(words, state: State):
+    if state == None:
+        return words
+
+    green_yellow = [letter for letter in state.green + state.yellow if letter != '.']
+
+    # reducing by state is absolute and will not remove all words - else bug
+    return {word for word in words if
+        # greens match positionally
+        re.compile(f'^{"".join(state.green)}$').match(word) and
+
+        # yellows appear somewhere in the word
+        all(letter in word for letter in state.yellow) and
+
+        # yellows might match to green slots, but if there is a green and yellow then we actually have a hint of duplicate letters
+        # this ensures the count of the letter in the word is at least the number of hints we have for the letter
+        all(word.count(letter) >= green_yellow.count(letter) for letter in green_yellow) and
+
+        # greys are not in the word
+        all(letter not in word for letter in state.grey) and
+
+        # yellows not only tell us that the letter is in the word, but also that it is NOT at the position of the yellow hint
+        # this uses the negative cluse to filte out words with letters matching the yellow clues at the same position
+        all(word[index] not in state.yellow_negative[index] for index in state.yellow_negative) and
+
+        # don't guess words that were previously guessed!
+        word not in state.guesses
+    }
+
+def reduce_by_only_unique_letters(words, round_number):
+    # consider only words with unique letters in early rounds iff doing so does not eliminate all candiate words
     reduced_words = words
-    if state != None:
-        green_yellow = [letter for letter in state.green + state.yellow if letter != '.']
+    if round_number <= ROUNDS / 2:
+        words_only_unique_letters = {word for word in words if len(word) == len(set(word))}
+        if len(words_only_unique_letters) > 0:
+            reduced_words = words_only_unique_letters
 
-        reduced_words = [word for word in words if
-            # greens match positionally
-            re.compile(f'^{"".join(state.green)}$').match(word) and
+    return reduced_words
 
-            # yellows appear somewhere in the word
-            all(letter in word for letter in state.yellow) and
 
-            # yellows might match to green slots, but if there is a green and yellow then we actually have a hint of duplicate letters
-            # this ensures the count of the letter in the word is at least the number of hints we have for the letter
-            all(word.count(letter) >= green_yellow.count(letter) for letter in green_yellow) and
+def reduce_by_plural(words, round_number):
+    # consider only words that don't seem to be plural in early rounds iff doing so does not eliminate all candiate words
+    # possibly cheaty since this requires some knoledge of the answers compared to valid words, but a human could notice from play that answers are not plural
+    reduced_words = words
+    if round_number <= 2:
+        words_not_ending_with_s = {word for word in words if not word.endswith('s')}
+        if len(words_not_ending_with_s) > 0:
+            reduced_words = words_not_ending_with_s
 
-            # greys are not in the word
-            all(letter not in word for letter in state.grey) and
+    return reduced_words
 
-            # yellows not only tell us that the letter is in the word, but also that it is NOT at the position of the yellow hint
-            # this uses the negative cluse to filte out words with letters matching the yellow clues at the same position
-            all(word[index] not in state.yellow_negative[index] for index in state.yellow_negative) and
+def reduce_and_score(words, state: State, round_number):
+    reduced_words = reduce_by_state(words, state)
+    reduced_words = reduce_by_only_unique_letters(reduced_words, round_number)
+    reduced_words = reduce_by_plural(reduced_words, round_number)
+    
+    return score(reduced_words)
 
-            # don't guess words that were previously guessed!
-            word not in state.guesses
-        ]
 
-    if len(reduced_words) > 0:
-        val = score(reduced_words)
-        return val
-    else:
-        return []
-
-def best_word(words, state):
-    scored = reduce_and_score(words, state)
-    if len(scored) > 0:
-        return scored.pop()[0]
-    else:
+def best_word(words, state, round_number=ROUNDS):
+    scored = reduce_and_score(words, state, round_number)
+    if len(scored) == 0:
         return None
 
-if __name__ == '__main__':
-    WORD_FILENAME = 'valid.txt'
+    # print(sorted(scored, key=lambda x: x[1]))
+    max_score = max([score for _, score in scored])
+    best_words = [word for word, score in scored if score == max_score]
 
-    with open(WORD_FILENAME, 'r') as f:
+    # sorting makes best word deterministic
+    return sorted(best_words)[0]
+
+### FIX
+#  c  a  r  e  s 
+#  l  a  k  e  r 
+#  w  a  t  e  r 
+#  g  a  g  e  r 
+#  f  a  v  e  r 
+#  h  a  z  e  r 
+# You lost - correct answer was "paper"
+
+if __name__ == '__main__':
+    with open(VALID_FILENAME, 'r') as f:
         valid_words = {word.strip() for word in set(f)}
 
     for word in valid_words:
@@ -92,6 +132,5 @@ if __name__ == '__main__':
                 print('all words must be lowercase')
                 exit(1)
 
-    state = State(green=['g', 'l', 'i', '.', 'e'], yellow=[], grey={'c', 'o', 'k', 'r', 'a', 'n', 'b', 'u', 's', 'd'}, yellow_negative={3: {'e', 'l', 'i'}}, guesses={'guile', 'bonie', 'glike', 'cares', 'glide'})
-    print(reduce_and_score(valid_words, state))
-    print(best_word(valid_words, state))
+    state = None
+    print(best_word(valid_words, state, 1))
