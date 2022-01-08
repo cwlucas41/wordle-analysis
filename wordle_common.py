@@ -4,7 +4,6 @@ from enum import Enum
 ANSWER_FILENAME = 'words/answers.txt'
 VALID_FILENAME = 'words/valid.txt'
 WORD_LENGTH = 5
-ROUNDS = 6
 
 @dataclass
 class State:

@@ -1,40 +1,19 @@
 #!/usr/bin/env python3
 import argparse
-import math
 
 from random import choice
-from itertools import repeat
-from multiprocessing import Pool, freeze_support
+from multiprocessing import freeze_support
 from textwrap import dedent
 
 from wordle_common import VALID_FILENAME, ANSWER_FILENAME, Mode, get_words
 from wordle_play import play
-
-def benchmark(mode, answers, valid_words, hard):
-    with Pool() as pool:
-        results = pool.starmap(play, zip(repeat(mode), answers, repeat(valid_words), repeat(hard)), 25)
-
-    histogram = dict()
-    for word, end_round in results:
-        histogram[end_round] = histogram.get(end_round, set()) | {word}
-
-    win_count = sum([len(words) for end_round, words in histogram.items() if end_round != math.inf])
-    game_count = sum([len(words) for _, words in histogram.items()])
-    
-    print(f'Win rate: - {round(win_count / len(answers) * 100, 3)}%')
-    print(f'Total games - {game_count}')
-    print(f'Hard mode - {hard}')
-    for end_round in sorted(histogram.keys()):
-        words = histogram[end_round]
-        if end_round != math.inf:
-            print(f'{end_round}: {len(words)}')
-        else:
-            print(f'L: {len(words)} - {sorted(list(words))}')
+from wordle_benchmark import benchmark
 
 def run(args):
     mode = args.mode
     verbose = args.verbose
     hard = args.hard
+    rounds = args.rounds
     override_answer = args.answer
 
     if mode == Mode.BENCHMARK and override_answer:
@@ -51,9 +30,9 @@ def run(args):
         exit(1)
 
     if mode == Mode.BENCHMARK:
-        benchmark(mode, answers, valid_words, hard)
+        benchmark(mode, answers, valid_words, hard, rounds)
     else:
-        play(mode, answer, valid_words, hard, verbose)
+        play(mode, answer, valid_words, hard, rounds, verbose)
 
 if __name__ == '__main__':
     freeze_support()
@@ -66,8 +45,10 @@ if __name__ == '__main__':
             - "solver" (default) for the solving algorithm to play
             - "benchmark" for the solver to play over all possible ansers and print summary
             '''))
-    arg_parser.add_argument('-a', '--answer', type=str,
+    arg_parser.add_argument('-a', '--answer', type=str, metavar='word',
         help='sets the answer word - usefull for debugging a specific case')
+    arg_parser.add_argument('-r', '--rounds', type=int, default=6, metavar='num_rounds',
+        help='number of rounds (default=6)')
     arg_parser.add_argument('-h', '--hard', action='store_true',
         help='enable hard mode (any revealed hints must be used in subsequent guesses)')
     arg_parser.add_argument('-v', '--verbose', action='store_true',
