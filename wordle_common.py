@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from enum import Enum
 
-ANSWER_FILENAME = 'answers.txt'
-VALID_FILENAME = 'valid.txt'
+ANSWER_FILENAME = 'words/answers.txt'
+VALID_FILENAME = 'words/valid.txt'
 WORD_LENGTH = 5
 ROUNDS = 6
 
