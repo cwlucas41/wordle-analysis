@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
 import string
-import re
+
+from zlib import crc32
 
 from wordle_common import WORD_LENGTH, VALID_FILENAME, State
+from wordle_score import validate_guess_hard_mode
 
 def positional_frequency(words):
     table = dict()
@@ -16,45 +18,40 @@ def positional_frequency(words):
         table[index] = frequencies
     return table
 
-def words_with_unique_letters(words):
-    return {word for word in words if len(word) == len(set(word))}
-
-def score(words):
-    if len(words) == 0:
-        return []
-
-    positional_frequencies = positional_frequency(words)
+def score(guessable_words, candidate_words, state: State):
+    positional_frequencies = positional_frequency(candidate_words)
 
     scores = []
-    for word in words:
+    for word in guessable_words:
         score = 0
         for i, letter in enumerate(word):
-            # TODO: contingencies among word corpus
-            factor = 1
-
-            score = score + positional_frequencies[i][letter] * factor
+            adjusted_positional_frequency = positional_frequencies[i][letter]
+            if state != None and (state.green[i] == letter or letter in state.grey):
+                adjusted_positional_frequency = 0
+            score = score + adjusted_positional_frequency
         scores.append((word, score))
-    
     return scores
 
-def reduce_by_state(words, state: State):
+# def score(words):
+#     scores = []
+#     for word in words:
+#         common_letter_count = [len(set(w) & set(word)) for w in words if w != word]
+#         positive_common_letter_count = [letter_count for letter_count in common_letter_count if letter_count > 0]
+#         scores.append((word, sum(positive_common_letter_count)))
+#     # print(f"done! - {len(words)}")
+#     return scores
+
+def reduce_by_hard_hints(words, state: State):
     if state == None:
         return words
 
-    green_yellow = [letter for letter in state.green + state.yellow if letter != '.']
+    return {word for word in words if validate_guess_hard_mode(word, state)}
 
-    # reducing by state is absolute and will not remove all words - else bug
+def reduce_by_not_hard_hints(words, state: State):
+    if state == None:
+        return words
+
     return {word for word in words if
-        # greens match positionally
-        re.compile(f'^{"".join(state.green)}$').match(word) and
-
-        # yellows appear somewhere in the word
-        all(letter in word for letter in state.yellow) and
-
-        # yellows might match to green slots, but if there is a green and yellow then we actually have a hint of duplicate letters
-        # this ensures the count of the letter in the word is at least the number of hints we have for the letter
-        all(word.count(letter) >= green_yellow.count(letter) for letter in green_yellow) and
-
         # greys are not in the word
         all(letter not in word for letter in state.grey) and
 
@@ -62,53 +59,91 @@ def reduce_by_state(words, state: State):
         # this uses the negative cluse to filte out words with letters matching the yellow clues at the same position
         all(word[index] not in state.yellow_negative[index] for index in state.yellow_negative) and
 
-        # don't guess words that were previously guessed!
+        # use the count of a particular letter if it is known
+        all(word.count(letter) == count for letter, count in state.known_letter_count.items())
+    }
+
+def reduce_by_duplicates(words, state: State):
+    if state == None:
+        return words
+
+    return {word for word in words if
+        # don't guess words that were previously guessed
         word not in state.guesses
     }
 
-def reduce_by_only_unique_letters(words, round_number, rounds):
-    # consider only words with unique letters in early rounds iff doing so does not eliminate all candiate words
+def reduce_by_only_unique_letters(words):
+    # consider only words with unique letters iff doing so does not eliminate all candiate words
     reduced_words = words
-    if round_number <= rounds / 2:
-        words_only_unique_letters = {word for word in words if len(word) == len(set(word))}
-        if len(words_only_unique_letters) > 0:
-            reduced_words = words_only_unique_letters
+
+    words_only_unique_letters = {word for word in words if len(word) == len(set(word))}
+    if len(words_only_unique_letters) > 0:
+        reduced_words = words_only_unique_letters
 
     return reduced_words
 
 
-def reduce_by_plural(words, round_number, rounds):
-    # consider only words that don't seem to be plural in early rounds iff doing so does not eliminate all candiate words
+def reduce_by_plural(words):
+    # consider only words that don't seem to be plural iff doing so does not eliminate all candiate words
     # possibly cheaty since this requires some knoledge of the answers compared to valid words, but a human could notice from play that answers are not plural
     reduced_words = words
-    if round_number <= 2:
-        words_not_ending_with_s = {word for word in words if not word.endswith('s')}
-        if len(words_not_ending_with_s) > 0:
-            reduced_words = words_not_ending_with_s
+
+    words_not_ending_with_s = {word for word in words if not word.endswith('s')}
+    if len(words_not_ending_with_s) > 0:
+        reduced_words = words_not_ending_with_s
 
     return reduced_words
 
-def reduce_and_score(words, state: State, round_number, rounds):
-    # TODO: this always uses hard mode rules, but it will be advantageous to get information about more letters rather than repeating known information
+def reduce_by_speculation(words, round_number, rounds):
+    # reduce to words with all unique letters in first half of game
+    words = reduce_by_only_unique_letters(words) if round_number <= rounds/2 else words
+    # reduce to words that don't look plural in early rounds
+    words = reduce_by_plural(words) if round_number <= 2 else words
+    return words
 
-    reduced_words = reduce_by_state(words, state)
-    reduced_words = reduce_by_only_unique_letters(reduced_words, round_number, rounds)
-    reduced_words = reduce_by_plural(reduced_words, round_number, rounds)
+def reduce_and_score(words, hard, state: State, round_number, rounds):
+
+    ### candidate words pure reduction
+    #
+    candidate_words = words
+    candidate_words = reduce_by_duplicates(candidate_words, state)
+    candidate_words = reduce_by_hard_hints(candidate_words, state)
+    candidate_words = reduce_by_not_hard_hints(candidate_words, state)
+
+    # Before speculative reduction:
+    # if it's the last round - try to win instead of reducing the candidate words
+    # start guessing if the candidate words are reduced enough for us to exhaustively guess in time
+    if round_number >= rounds - 1 or len(candidate_words) <= rounds - round_number:
+        return score(candidate_words, candidate_words, state)
+
+    ### candidate words speculative reduction
+    candidate_words = reduce_by_speculation(candidate_words, round_number, rounds)
+
+    ### guessable words pure reduction
+    guessable_words = words
+    guessable_words = reduce_by_duplicates(guessable_words, state)
+    guessable_words = reduce_by_hard_hints(guessable_words, state) if hard else guessable_words    
+
+    ### guessable words speculative reduction
+    guessable_words = reduce_by_speculation(guessable_words, round_number, rounds)
     
-    return score(reduced_words)
+    return score(guessable_words, candidate_words, state)
 
 
-def best_word(words, state, round_number, rounds):
-    scored = reduce_and_score(words, state, round_number, rounds)
+def best_word(words, hard, state, round_number, rounds):
+
+    scored = reduce_and_score(words, hard, state, round_number, rounds)
     if len(scored) == 0:
         return None
-
-    # print(sorted(scored, key=lambda x: x[1]))
+    
     max_score = max([score for _, score in scored])
     best_words = [word for word, score in scored if score == max_score]
 
-    # sorting makes best word deterministic
-    return sorted(best_words)[0]
+    # sorting makes best word deterministic if index is deterministic
+    # sorting by hashed value effectively randomizes the order of words to avoid alphabetical bias 
+    sorted_best_words = sorted(best_words, key=lambda x: crc32(x.encode()))
+
+    return sorted_best_words[0]
 
 if __name__ == '__main__':
     with open(VALID_FILENAME, 'r') as f:

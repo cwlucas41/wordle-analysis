@@ -1,4 +1,24 @@
+import re
+
 from wordle_common import State
+
+def validate_guess_hard_mode(guess, state):
+    if state == None:
+        return True
+
+    green_yellow = [letter for letter in state.green + state.yellow if letter != '.']
+    
+    # greens match positionally
+    uses_greens = re.compile(f'^{"".join(state.green)}$').match(guess)
+
+    # yellows might match to green slots, but if there is a green and yellow then we actually have a hint of duplicate letters
+    # this ensures the count of the letter in the word is at least the number of hints we have for the letter
+    # 
+    # this asserts that all yellows appear in the word (which is the explained way to think of yellows) implicitly
+    uses_yellows = all(guess.count(letter) >= green_yellow.count(letter) for letter in green_yellow)
+
+    # hard mode does not enforce other constraints like greys, or other information
+    return uses_yellows and uses_greens
 
 def score_guess(guess, answer) -> State:
     green = [pair[0] if pair[0] == pair[1] else '.' for pair in zip(guess, answer)]
@@ -26,8 +46,14 @@ def score_guess(guess, answer) -> State:
             answer = ''.join(answer)
         elif letter not in green and letter not in yellow:
             grey.add(letter)
+        
+    known_letter_count = dict()
+    green_yellow = [letter for letter in green + yellow if letter != '.']
+    for letter in set(green_yellow):
+        if guess.count(letter) > green_yellow.count(letter):
+            known_letter_count[letter] = green_yellow.count(letter)
 
-    return State(green, yellow, grey, yellow_negative, {guess})
+    return State(green, yellow, grey, yellow_negative, known_letter_count, {guess})
 
 def combine_scores(s_old: State, s_new: State) -> State:
     green = [pair[0] if pair[0] != '.' else pair[1] for pair in zip(s_old.green, s_new.green)]
@@ -62,4 +88,12 @@ def combine_scores(s_old: State, s_new: State) -> State:
     for key in s_old.yellow_negative.keys() | s_new.yellow_negative.keys():
         yellow_negative[key] = s_old.yellow_negative.get(key, set()) | s_new.yellow_negative.get(key, set())
 
-    return State(green, mod_new_yellows, grey, yellow_negative, s_old.guesses | s_new.guesses)
+    known_letter_count = {**s_old.known_letter_count, **s_new.known_letter_count}
+    for key in s_old.known_letter_count.keys() & s_new.known_letter_count.keys():
+        if s_old.known_letter_count[key] != s_new.known_letter_count[key]:
+            print(f'bug in known_letter_count - "{key}" can\'t have count of {s_old.known_letter_count[key]} and {s_new.known_letter_count[key]}')
+            del known_letter_count[key]
+
+    guesses = s_old.guesses | s_new.guesses
+
+    return State(green, mod_new_yellows, grey, yellow_negative, known_letter_count, guesses)

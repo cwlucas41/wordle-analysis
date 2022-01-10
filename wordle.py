@@ -5,7 +5,7 @@ from random import choice
 from multiprocessing import freeze_support
 from textwrap import dedent
 
-from wordle_common import VALID_FILENAME, ANSWER_FILENAME, Mode, get_words
+from wordle_common import VALID_FILENAME, ANSWER_FILENAME, DEFAULT_ROUNDS, Mode, get_words
 from wordle_play import play
 from wordle_benchmark import benchmark
 
@@ -38,6 +38,7 @@ if __name__ == '__main__':
     freeze_support()
 
     arg_parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, conflict_handler='resolve')
+    # TODO: independent flags for modes for ergonomics
     arg_parser.add_argument('-m', '--mode', type=Mode, choices=list(Mode), default=Mode.SOLVER.value,
         help=dedent('''\
             Choose running mode.
@@ -47,7 +48,7 @@ if __name__ == '__main__':
             '''))
     arg_parser.add_argument('-a', '--answer', type=str, metavar='word',
         help='sets the answer word - usefull for debugging a specific case')
-    arg_parser.add_argument('-r', '--rounds', type=int, default=6, metavar='num_rounds',
+    arg_parser.add_argument('-r', '--rounds', type=int, default=DEFAULT_ROUNDS, metavar='num_rounds',
         help='number of rounds (default=6)')
     arg_parser.add_argument('-h', '--hard', action='store_true',
         help='enable hard mode (any revealed hints must be used in subsequent guesses)')

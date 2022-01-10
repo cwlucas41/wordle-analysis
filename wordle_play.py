@@ -1,29 +1,17 @@
 import math
-import re
 
 from colorama import Fore, Back, Style
 
-from wordle_common import WORD_LENGTH, Mode, State, get_words
-from wordle_score import score_guess, combine_scores
+from wordle_common import WORD_LENGTH, DEFAULT_ROUNDS, Mode, State
+from wordle_score import score_guess, combine_scores, validate_guess_hard_mode
 from wordle_solver import best_word
-
-def validate_guess_hard_mode(guess, state):
-    if state == None:
-        return True
-
-    green_yellow = [letter for letter in state.green + state.yellow if letter != '.']
-    
-    uses_greens = re.compile(f'^{"".join(state.green)}$').match(guess)
-    uses_yellows = all(guess.count(letter) >= green_yellow.count(letter) for letter in green_yellow)
-    # hard mode does not enforce other constraints like greys, negative yellows, or repeated words
-    return uses_yellows and uses_greens
 
 def get_guess(mode, valid_words, hard, state, round_number, rounds):
     guess = None 
     if mode == Mode.INTERACTIVE:
         guess = input("Guess: ").lower()
     elif mode in [Mode.SOLVER, Mode.BENCHMARK]:
-        guess = best_word(valid_words, state, round_number, rounds)
+        guess = best_word(valid_words, hard, state, round_number, rounds)
         if guess == None:
             print(f'solver did not make a guess')
             print(state)
@@ -38,20 +26,25 @@ def get_guess(mode, valid_words, hard, state, round_number, rounds):
         return get_guess(mode, valid_words, hard, state, round_number, rounds)
 
     if hard and not validate_guess_hard_mode(guess, state):
-        print('word did not use all previous hints which is required in hard mode')
+        print(f'word "{guess}" did not use all previous hints which is required in hard mode')
         return get_guess(mode, valid_words, hard, state, round_number, rounds)
 
     return guess
 
-def print_result(guess, score: State):
+def print_result(guess, score: State, verbose=False):
     used_yellow = []
     for index, letter in enumerate(guess):
-        color = Back.LIGHTBLACK_EX + Fore.WHITE
+        color = None
         if score.green[index] == letter:
             color = Back.GREEN + Fore.WHITE
         elif letter in score.yellow and score.yellow.count(letter) - used_yellow.count(letter) > 0:
             used_yellow.append(letter)
             color = Back.YELLOW + Fore.BLACK
+        elif letter in score.grey:
+            color = Back.LIGHTBLACK_EX + Fore.WHITE
+        else:
+            # these indicate that the letter appears in the word, but the answer has less instances of the letter than the guess
+            color = (Back.RED if verbose else Back.LIGHTBLACK_EX) + Fore.WHITE
 
         print(f'{color} {letter} {Style.RESET_ALL}', end='')
     print()
@@ -61,18 +54,22 @@ def play(mode, answer, valid_words, hard, rounds, verbose=False):
     guess = None
     state = None
     for round_number in range(1, rounds + 1):
+        if round_number == DEFAULT_ROUNDS + 1 and mode in [Mode.INTERACTIVE, Mode.SOLVER]:
+            print('---------------')
+            
         if state and verbose:
             print(f'total green: "{"".join(state.green)}"')
             print(f'total yellow: {sorted(state.yellow)}')
             print(f'total gray: {sorted(list(state.grey))}')
             print(f'total yellow neg: {state.yellow_negative}')
+            print(f'known letter counts: {state.known_letter_count}')
 
         guess = get_guess(mode, valid_words, hard, state, round_number, rounds)
 
         score = score_guess(guess, answer)
 
         if mode in [Mode.INTERACTIVE, Mode.SOLVER]:
-            print_result(guess, score)
+            print_result(guess, score, verbose)
 
         if state:
             state = combine_scores(state, score)

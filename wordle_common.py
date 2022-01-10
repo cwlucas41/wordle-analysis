@@ -4,6 +4,7 @@ from enum import Enum
 ANSWER_FILENAME = 'words/answers.txt'
 VALID_FILENAME = 'words/valid.txt'
 WORD_LENGTH = 5
+DEFAULT_ROUNDS=6
 
 @dataclass
 class State:
@@ -11,6 +12,7 @@ class State:
     yellow: list
     grey: set
     yellow_negative: dict
+    known_letter_count: dict
     guesses: set
 
 class Mode(Enum):
