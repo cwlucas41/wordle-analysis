@@ -1,8 +1,9 @@
-from dataclasses import dataclass
 import re
+import string
+
+from dataclasses import dataclass
 
 # TODO: refactor to proper class instead of this mess
-
 @dataclass
 class State:
     green: list
@@ -10,6 +11,7 @@ class State:
     grey: set
     yellow_negative: dict
     known_letter_count: dict
+    unhinted_letters: set
     guesses: set
 
 def validate_guess_hard_mode(guess, state):
@@ -63,7 +65,10 @@ def score_guess(guess, answer) -> State:
         if guess.count(letter) > green_yellow.count(letter):
             known_letter_count[letter] = green_yellow.count(letter)
 
-    return State(green, yellow, grey, yellow_negative, known_letter_count, {guess})
+    unhinted_letters = set(string.ascii_lowercase) - set(green) - set(yellow) - grey
+    guesses = {guess}
+
+    return State(green, yellow, grey, yellow_negative, known_letter_count, unhinted_letters, guesses)
 
 def combine_scores(s_old: State, s_new: State) -> State:
     green = [pair[0] if pair[0] != '.' else pair[1] for pair in zip(s_old.green, s_new.green)]
@@ -104,6 +109,9 @@ def combine_scores(s_old: State, s_new: State) -> State:
             print(f'bug in known_letter_count - "{key}" can\'t have count of {s_old.known_letter_count[key]} and {s_new.known_letter_count[key]}')
             del known_letter_count[key]
 
+    
+    unhinted_letters = set(string.ascii_lowercase) - set(green) - set(mod_new_yellows) - grey
+
     guesses = s_old.guesses | s_new.guesses
 
-    return State(green, mod_new_yellows, grey, yellow_negative, known_letter_count, guesses)
+    return State(green, mod_new_yellows, grey, yellow_negative, known_letter_count, unhinted_letters, guesses)

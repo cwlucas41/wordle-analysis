@@ -65,6 +65,7 @@ def play(mode, answer, valid_words, hard, rounds, debug=False):
             print(f'total gray: {sorted(list(state.grey))}')
             print(f'total yellow neg: {state.yellow_negative}')
             print(f'known letter counts: {state.known_letter_count}')
+            print(f'unhinted letters: {sorted(list(state.unhinted_letters))}')
 
         guess = get_guess(mode, valid_words, hard, state, round_number, rounds, debug)
 

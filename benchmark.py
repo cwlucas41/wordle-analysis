@@ -6,7 +6,7 @@ from time import time
 
 from play import play
 
-def benchmark(mode, answers, valid_words, rounds):
+def benchmark(mode, answers, valid_words, rounds, debug):
 
     missed_words = dict()
 
@@ -39,23 +39,24 @@ def benchmark(mode, answers, valid_words, rounds):
 
             print()
 
-    easy_misses = missed_words[False]
-    hard_misses = missed_words[True]
+    if debug:
+        easy_misses = missed_words[False]
+        hard_misses = missed_words[True]
 
-    easy_only = easy_misses - hard_misses
-    hard_only = hard_misses - easy_misses
-    both = easy_misses & hard_misses
+        easy_only = easy_misses - hard_misses
+        hard_only = hard_misses - easy_misses
+        both = easy_misses & hard_misses
 
-    print(f'Easy only misses - {len(easy_only)}')
-    if len(easy_only) > 0:
-        print(f'{sorted(list(easy_only))}')
-    print()
+        print(f'Easy only misses - {len(easy_only)}')
+        if len(easy_only) > 0:
+            print(f'{sorted(list(easy_only))}')
+        print()
 
-    print(f'Hard only misses - {len(hard_only)}')
-    if len(hard_only) > 0:
-        print(f'{sorted(list(hard_only))}')
-    print()
+        print(f'Hard only misses - {len(hard_only)}')
+        if len(hard_only) > 0:
+            print(f'{sorted(list(hard_only))}')
+        print()
 
-    print(f'Easy and Hard misses - {len(both)}')
-    if len(both) > 0:
-        print(f'{sorted(list(both))}')
+        print(f'Easy and Hard misses - {len(both)}')
+        if len(both) > 0:
+            print(f'{sorted(list(both))}')

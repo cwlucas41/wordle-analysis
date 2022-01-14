@@ -30,7 +30,7 @@ def run(args):
         exit(1)
 
     if mode == Mode.BENCHMARK:
-        benchmark(mode, answers, valid_words, rounds)
+        benchmark(mode, answers, valid_words, rounds, debug)
     else:
         play(mode, answer, valid_words, hard, rounds, debug)
 

@@ -7,6 +7,12 @@ from zlib import crc32
 from common import WORD_LENGTH, VALID_FILENAME
 from state import State, validate_guess_hard_mode
 
+def deterministic_first(words):
+    if len(words) == 0:
+        return None
+
+    return sorted(words, key=lambda x: crc32(x.encode()))[0]
+
 def positional_frequency(words):
     table = dict()
     for index in range(WORD_LENGTH):
@@ -18,11 +24,50 @@ def positional_frequency(words):
         table[index] = frequencies
     return table
 
-def score(guessable_words, candidate_words, state: State):
+def score(guessable_words, candidate_words, state: State, debug):
+
+    # shortcut with VIPs
+    if state and state.green.count('.') == 1:
+        vip_letters = set.union(*[{w for w,g in zip(word, state.green) if g == '.'} - set(state.green) for word in candidate_words])
+        if len(vip_letters) > 2:
+            vip_dict = dict()
+            for word in guessable_words:
+                vip_and_word_letters = len(set(word) & vip_letters)
+                vip_dict[vip_and_word_letters] = vip_dict.get(vip_and_word_letters, set()) | {word}
+
+            top_vip_set = sorted(vip_dict.keys(), reverse=True)[0]
+            if debug:
+                print(f'top vip set: {top_vip_set}')
+            if top_vip_set > 1 and (state.green.count('.') <=1 or top_vip_set >= 3):
+                guessable_words = vip_dict[top_vip_set]
+                if debug:
+                    print(f'VIPs: {top_vip_set}: {guessable_words}')
+
     positional_frequencies = positional_frequency(candidate_words)
 
+    candidate_count = len(candidate_words)
+
+    pivot_scores = []
+    if state != None:
+        for letter in state.unhinted_letters:
+            count_with_letter = len([word for word in candidate_words if letter in word])
+            if count_with_letter == 0 or count_with_letter == candidate_count:
+                continue
+            score = abs(count_with_letter / candidate_count - 1/2)
+            pivot_scores.append((letter, score))
+
+    reduced_guessable_words = guessable_words
+    if len(pivot_scores) > 0:
+        min_pivot_score = min([score for _, score in pivot_scores])
+        pivot_letter = deterministic_first([word for word, score in pivot_scores if score == min_pivot_score])
+        pivoted = [word for word in guessable_words if pivot_letter in word]
+        if len(pivoted) > 0:
+            reduced_guessable_words = pivoted
+            if debug:
+                print(f'pivot: {pivot_letter}: {min_pivot_score + 0.5}')
+
     scores = []
-    for word in guessable_words:
+    for word in reduced_guessable_words:
         score = 0
         for i, letter in enumerate(word):
             adjusted_positional_frequency = positional_frequencies[i][letter]
@@ -31,18 +76,11 @@ def score(guessable_words, candidate_words, state: State):
                     adjusted_positional_frequency = 0
                 if letter in state.grey:
                     adjusted_positional_frequency = 0
+                if letter in state.yellow:
+                    adjusted_positional_frequency = adjusted_positional_frequency * 0.75
             score = score + adjusted_positional_frequency
         scores.append((word, score))
     return scores
-
-# def score(words):
-#     scores = []
-#     for word in words:
-#         common_letter_count = [len(set(w) & set(word)) for w in words if w != word]
-#         positive_common_letter_count = [letter_count for letter_count in common_letter_count if letter_count > 0]
-#         scores.append((word, sum(positive_common_letter_count)))
-#     # print(f"done! - {len(words)}")
-#     return scores
 
 def reduce_by_hard_hints(words, state: State):
     if state == None:
@@ -114,13 +152,12 @@ def reduce_and_score(words, hard, state: State, round_number, rounds, debug):
     candidate_words = reduce_by_not_hard_hints(candidate_words, state)
 
     if debug:
-        print(f'solver: {len(candidate_words)} candidate words left')
+        print(f'solver: {len(candidate_words)} candidate words left: {list(candidate_words)[:10]}')
 
     # Before speculative reduction:
     # if it's the last round - try to win instead of reducing the candidate words
-    # start guessing if the candidate words are reduced enough for us to exhaustively guess in time
-    if round_number >= rounds: #or len(candidate_words) <= rounds - round_number:
-        return score(candidate_words, candidate_words, state)
+    if round_number >= rounds:
+        return deterministic_first(candidate_words)
 
     ### candidate words speculative reduction
     candidate_words = reduce_by_speculation(candidate_words, round_number, rounds)
@@ -137,26 +174,24 @@ def reduce_and_score(words, hard, state: State, round_number, rounds, debug):
     if debug:
         print(f'solver: {len(guessable_words)} guessable words left')
     
-    return score(guessable_words, candidate_words, state)
+    return score(guessable_words, candidate_words, state, debug)
 
 
 def best_word(words, hard, state, round_number, rounds, debug=False):
 
     scored = reduce_and_score(words, hard, state, round_number, rounds, debug)
-    if len(scored) == 0:
+    if isinstance(scored, str):
+        return scored
+    elif len(scored) == 0:
         return None
-
-    if debug:
-        print(f'top words: {scored[:20]}')
     
     max_score = max([score for _, score in scored])
     best_words = [word for word, score in scored if score == max_score]
 
-    # sorting makes best word deterministic if index is deterministic
-    # sorting by hashed value effectively randomizes the order of words to avoid alphabetical bias 
-    sorted_best_words = sorted(best_words, key=lambda x: crc32(x.encode()))
+    if debug:
+        print(f'top words: {sorted(best_words)[:10]}')
 
-    return sorted_best_words[0]
+    return deterministic_first(best_words)
 
 if __name__ == '__main__':
     with open(VALID_FILENAME, 'r') as f:
