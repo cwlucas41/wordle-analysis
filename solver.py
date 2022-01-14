@@ -27,8 +27,10 @@ def positional_frequency(words):
 def score(guessable_words, candidate_words, state: State, debug):
 
     # shortcut with VIPs
-    if state and state.green.count('.') == 1:
-        vip_letters = set.union(*[{w for w,g in zip(word, state.green) if g == '.'} - set(state.green) for word in candidate_words])
+    if state and state.green.count('.') <= 2:
+        vip_letters = set.union(*[{w for w,g in zip(word, state.green) if g == '.'} for word in candidate_words])
+        if debug:
+            print(f'vip letters: {vip_letters}')
         if len(vip_letters) > 2:
             vip_dict = dict()
             for word in guessable_words:
@@ -169,10 +171,6 @@ def reduce_and_score(words, hard, state: State, round_number, rounds, debug):
 
     ### guessable words speculative reduction
     guessable_words = reduce_by_speculation(guessable_words, round_number, rounds)
-
-    
-    if debug:
-        print(f'solver: {len(guessable_words)} guessable words left')
     
     return score(guessable_words, candidate_words, state, debug)
 

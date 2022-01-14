@@ -4,28 +4,28 @@
 
 ```
 Easy mode
-Win rate: - 99.3%
+Win rate: - 99.5%
 Total games - 2315
-Duration: 133.0s
-2️⃣ : 25
-3️⃣ : 278
-4️⃣ : 911
-5️⃣ : 805
-6️⃣ : 280
-☠️ : 16
-['booby', 'boxer', 'daddy', 'eager', 'eater', 'elude', 'nanny', 'penny', 'putty', 'queer', 'rural', 'sappy', 'seven', 'tight', 'wafer', 'waver']
+Duration: 159.8s
+2️⃣ : 24
+3️⃣ : 151
+4️⃣ : 221
+5️⃣ : 53
+6️⃣ : 1854
+☠️ : 12
+['aging', 'boozy', 'catch', 'eager', 'giver', 'maker', 'might', 'penny', 'queer', 'river', 'roger', 'rower']
 
 Hard mode
-Win rate: - 94.4%
+Win rate: - 94.5%
 Total games - 2315
-Duration: 82.3s
+Duration: 91.0s
 2️⃣ : 42
-3️⃣ : 441
-4️⃣ : 898
-5️⃣ : 584
-6️⃣ : 220
-☠️ : 130
-['aging', 'award', 'baker', 'basis', 'batch', 'beefy', 'boozy', 'boxer', 'brave', 'burly', 'cabby', 'chirp', 'clack', 'crawl', 'daddy', 'dried', 'drool', 'droop', 'eager', 'eater', 'elude', 'embed', 'finch', 'fixer', 'floss', 'foyer', 'furry', 'fussy', 'gayer', 'handy', 'hardy', 'harem', 'harry', 'hasty', 'hilly', 'hippy', 'hitch', 'holly', 'hound', 'hurry', 'hutch', 'irate', 'jaunt', 'jelly', 'joker', 'later', 'ledge', 'leery', 'liner', 'lorry', 'louse', 'lumpy', 'maker', 'maybe', 'merry', 'might', 'moose', 'moral', 'mound', 'mouse', 'mover', 'mower', 'muddy', 'nanny', 'nerve', 'ninny', 'noisy', 'noose', 'otter', 'paddy', 'paler', 'paper', 'paste', 'patch', 'patty', 'penny', 'power', 'prism', 'prone', 'pushy', 'queer', 'ratty', 'reply', 'rider', 'riper', 'roomy', 'rover', 'rower', 'rural', 'safer', 'saner', 'sappy', 'sassy', 'savvy', 'scram', 'serum', 'sewer', 'share', 'shore', 'skill', 'smart', 'smear', 'smell', 'smite', 'spare', 'spell', 'stare', 'start', 'state', 'steer', 'store', 'stout', 'strap', 'tabby', 'table', 'tamer', 'taper', 'tatty', 'terse', 'tight', 'tithe', 'toddy', 'trait', 'tripe', 'unwed', 'verve', 'wafer', 'wager', 'water', 'willy']
+3️⃣ : 423
+4️⃣ : 915
+5️⃣ : 580
+6️⃣ : 227
+☠️ : 128
+['abate', 'aging', 'award', 'aware', 'baker', 'basis', 'batch', 'beefy', 'berry', 'boozy', 'boxer', 'brave', 'burly', 'cabby', 'caddy', 'chirp', 'clack', 'crawl', 'daddy', 'dried', 'droop', 'eager', 'eater', 'elude', 'embed', 'finch', 'floss', 'foyer', 'fussy', 'gayer', 'handy', 'hardy', 'hasty', 'hilly', 'hippy', 'hitch', 'holly', 'hound', 'hurry', 'hutch', 'irate', 'jaunt', 'jelly', 'later', 'ledge', 'leery', 'liner', 'lorry', 'louse', 'lumpy', 'maker', 'maybe', 'might', 'moral', 'mound', 'mouse', 'mover', 'mower', 'muddy', 'nerve', 'ninny', 'noose', 'otter', 'paddy', 'paler', 'paper', 'paste', 'patch', 'patty', 'penny', 'power', 'prism', 'prone', 'pushy', 'queer', 'ratty', 'reply', 'rider', 'riper', 'river', 'roger', 'roomy', 'rover', 'rower', 'rural', 'safer', 'saner', 'sappy', 'sassy', 'savvy', 'scram', 'serve', 'sever', 'sewer', 'share', 'shore', 'skill', 'smart', 'smear', 'smell', 'smite', 'snake', 'spare', 'spasm', 'spell', 'spree', 'stare', 'start', 'state', 'steer', 'store', 'stout', 'strap', 'tabby', 'table', 'tamer', 'taper', 'tatty', 'terse', 'tight', 'tithe', 'toddy', 'trait', 'tripe', 'unwed', 'verve', 'wager', 'water']
 ```
 
 ## Manual scripts
