@@ -1,6 +1,16 @@
+from dataclasses import dataclass
 import re
 
-from wordle_common import State
+# TODO: refactor to proper class instead of this mess
+
+@dataclass
+class State:
+    green: list
+    yellow: list
+    grey: set
+    yellow_negative: dict
+    known_letter_count: dict
+    guesses: set
 
 def validate_guess_hard_mode(guess, state):
     if state == None:

@@ -4,8 +4,8 @@ import string
 
 from zlib import crc32
 
-from wordle_common import WORD_LENGTH, VALID_FILENAME, State
-from wordle_score import validate_guess_hard_mode
+from common import WORD_LENGTH, VALID_FILENAME
+from state import State, validate_guess_hard_mode
 
 def positional_frequency(words):
     table = dict()
@@ -26,8 +26,11 @@ def score(guessable_words, candidate_words, state: State):
         score = 0
         for i, letter in enumerate(word):
             adjusted_positional_frequency = positional_frequencies[i][letter]
-            if state != None and (state.green[i] == letter or letter in state.grey):
-                adjusted_positional_frequency = 0
+            if state != None:
+                if state.green[i] == letter:
+                    adjusted_positional_frequency = 0
+                if letter in state.grey:
+                    adjusted_positional_frequency = 0
             score = score + adjusted_positional_frequency
         scores.append((word, score))
     return scores
@@ -101,7 +104,7 @@ def reduce_by_speculation(words, round_number, rounds):
     words = reduce_by_plural(words) if round_number <= 2 else words
     return words
 
-def reduce_and_score(words, hard, state: State, round_number, rounds):
+def reduce_and_score(words, hard, state: State, round_number, rounds, debug):
 
     ### candidate words pure reduction
     #
@@ -110,10 +113,13 @@ def reduce_and_score(words, hard, state: State, round_number, rounds):
     candidate_words = reduce_by_hard_hints(candidate_words, state)
     candidate_words = reduce_by_not_hard_hints(candidate_words, state)
 
+    if debug:
+        print(f'solver: {len(candidate_words)} candidate words left')
+
     # Before speculative reduction:
     # if it's the last round - try to win instead of reducing the candidate words
     # start guessing if the candidate words are reduced enough for us to exhaustively guess in time
-    if round_number >= rounds - 1 or len(candidate_words) <= rounds - round_number:
+    if round_number >= rounds: #or len(candidate_words) <= rounds - round_number:
         return score(candidate_words, candidate_words, state)
 
     ### candidate words speculative reduction
@@ -126,15 +132,22 @@ def reduce_and_score(words, hard, state: State, round_number, rounds):
 
     ### guessable words speculative reduction
     guessable_words = reduce_by_speculation(guessable_words, round_number, rounds)
+
+    
+    if debug:
+        print(f'solver: {len(guessable_words)} guessable words left')
     
     return score(guessable_words, candidate_words, state)
 
 
-def best_word(words, hard, state, round_number, rounds):
+def best_word(words, hard, state, round_number, rounds, debug=False):
 
-    scored = reduce_and_score(words, hard, state, round_number, rounds)
+    scored = reduce_and_score(words, hard, state, round_number, rounds, debug)
     if len(scored) == 0:
         return None
+
+    if debug:
+        print(f'top words: {scored[:20]}')
     
     max_score = max([score for _, score in scored])
     best_words = [word for word, score in scored if score == max_score]
