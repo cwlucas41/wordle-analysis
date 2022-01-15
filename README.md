@@ -4,7 +4,7 @@ Analaysis scripts and solver program for https://www.powerlanguage.co.uk/wordle/
 
 ## Wordle Solver
 ### Solver
-`./wordle.py` or `./wordle.py --solver`
+`./wordle.py` or `./wordle.py --solve`
 
 Picks a random word, runs the solving algorithm for it, and prints the result formatted like the real game.
 
