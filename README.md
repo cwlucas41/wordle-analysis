@@ -8,8 +8,12 @@ Analaysis scripts and solver program for https://www.powerlanguage.co.uk/wordle/
 
 Picks a random word, runs the solving algorithm for it, and prints the result formatted like the real game.
 
+By default, it guesses among all words accepted by real Wordle and chooses a random answer word among the special list of answer words that real Wordle has.
+
 ### Benchmark
 `./wordle.py --benchmark` 
+
+The benchmark tool runs the solver for every possible answer word and reports a summary of the results. It uses the same valid words and answer words list that the solver mode uses.
 
 #### Current Results
 ```
