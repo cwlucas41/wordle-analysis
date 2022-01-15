@@ -26,6 +26,9 @@ def positional_frequency(words):
 
 def score(guessable_words, candidate_words, state: State, debug):
 
+    candidate_count = len(candidate_words)
+    reduced_guessable_words = guessable_words
+
     # shortcut with VIPs
     if state and state.green.count('.') <= 2:
         vip_letters = set.union(*[{w for w,g in zip(word, state.green) if g == '.'} for word in candidate_words])
@@ -41,13 +44,9 @@ def score(guessable_words, candidate_words, state: State, debug):
             if debug:
                 print(f'top vip set: {top_vip_set}')
             if top_vip_set > 1 and (state.green.count('.') <=1 or top_vip_set >= 3):
-                guessable_words = vip_dict[top_vip_set]
+                reduced_guessable_words = vip_dict[top_vip_set]
                 if debug:
-                    print(f'VIPs: {top_vip_set}: {guessable_words}')
-
-    positional_frequencies = positional_frequency(candidate_words)
-
-    candidate_count = len(candidate_words)
+                    print(f'VIPs: {top_vip_set}: {reduced_guessable_words}')
 
     pivot_scores = []
     if state != None:
@@ -58,16 +57,17 @@ def score(guessable_words, candidate_words, state: State, debug):
             score = abs(count_with_letter / candidate_count - 1/2)
             pivot_scores.append((letter, score))
 
-    reduced_guessable_words = guessable_words
     if len(pivot_scores) > 0:
         min_pivot_score = min([score for _, score in pivot_scores])
         pivot_letter = deterministic_first([word for word, score in pivot_scores if score == min_pivot_score])
-        pivoted = [word for word in guessable_words if pivot_letter in word]
+        pivoted = [word for word in reduced_guessable_words if pivot_letter in word]
         if len(pivoted) > 0:
             reduced_guessable_words = pivoted
             if debug:
-                print(f'pivot: {pivot_letter}: {min_pivot_score + 0.5}')
+                print(f'pivot: {pivot_letter}: {round((1 - (min_pivot_score + 0.5)) * 100, 1)}% reduction guarantee')
 
+
+    positional_frequencies = positional_frequency(candidate_words)
     scores = []
     for word in reduced_guessable_words:
         score = 0
