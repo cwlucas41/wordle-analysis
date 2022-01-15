@@ -7,7 +7,11 @@ from zlib import crc32
 from common import WORD_LENGTH, VALID_FILENAME
 from state import State, validate_guess_hard_mode
 
-def deterministic_first(words):
+# useful for effectively randomizing a list of strings and then picking one of them
+# with the condition that the same result is given for the same input
+# utilizing this allows the program to pick an item from a list without meaningful bias (alphabetical or otherwise)
+# having the result be deterministic allows for the same solution to be derived from the same initial conditions
+def deterministic_random_first(words):
     if len(words) == 0:
         return None
 
@@ -29,7 +33,10 @@ def score(guessable_words, candidate_words, state: State, debug):
     candidate_count = len(candidate_words)
     reduced_guessable_words = guessable_words
 
-    # shortcut with VIPs
+    # Optimization:
+    # If we already know most of the letters as greens, then it can be tricky to find the one remaining letter
+    # If allowed (not in hard mode) this finds all the candidates for the remaining one or two letters so that
+    # the next guess can be a word that includes the most of those letters possible.
     if state and state.green.count('.') <= 2:
         vip_letters = set.union(*[{w for w,g in zip(word, state.green) if g == '.'} for word in candidate_words])
         if debug:
@@ -48,6 +55,10 @@ def score(guessable_words, candidate_words, state: State, debug):
                 if debug:
                     print(f'VIPs: {top_vip_set}: {reduced_guessable_words}')
 
+    # Optimization:
+    # For all possible candidate words, find the letter who's presence or absence in them that most evenly bifrucates the list
+    # Ideally, we find a letter that is contained only in 50% of the candidate words
+    # As an optimization, only consider guesses that include such a letter
     pivot_scores = []
     if state != None:
         for letter in state.unhinted_letters:
@@ -59,7 +70,7 @@ def score(guessable_words, candidate_words, state: State, debug):
 
     if len(pivot_scores) > 0:
         min_pivot_score = min([score for _, score in pivot_scores])
-        pivot_letter = deterministic_first([word for word, score in pivot_scores if score == min_pivot_score])
+        pivot_letter = deterministic_random_first([word for word, score in pivot_scores if score == min_pivot_score])
         pivoted = [word for word in reduced_guessable_words if pivot_letter in word]
         if len(pivoted) > 0:
             reduced_guessable_words = pivoted
@@ -67,6 +78,8 @@ def score(guessable_words, candidate_words, state: State, debug):
                 print(f'pivot: {pivot_letter}: {round((1 - (min_pivot_score + 0.5)) * 100, 1)}% reduction guarantee')
 
 
+    # Perform presence frequency analysis among the candidate words
+    # Then find the guessable word that has the highest score
     positional_frequencies = positional_frequency(candidate_words)
     scores = []
     for word in reduced_guessable_words:
@@ -159,7 +172,7 @@ def reduce_and_score(words, hard, state: State, round_number, rounds, debug):
     # Before speculative reduction:
     # if it's the last round - try to win instead of reducing the candidate words
     if round_number >= rounds:
-        return deterministic_first(candidate_words)
+        return deterministic_random_first(candidate_words)
 
     ### candidate words speculative reduction
     candidate_words = reduce_by_speculation(candidate_words, round_number, rounds)
@@ -189,7 +202,7 @@ def best_word(words, hard, state, round_number, rounds, debug=False):
     if debug:
         print(f'top words: {sorted(best_words)[:10]}')
 
-    return deterministic_first(best_words)
+    return deterministic_random_first(best_words)
 
 if __name__ == '__main__':
     with open(VALID_FILENAME, 'r') as f:
