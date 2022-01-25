@@ -64,7 +64,11 @@ def play(mode, answer, valid_words, hard, rounds, debug=False):
             print(f'total yellow: {sorted(state.yellow)}')
             print(f'total gray: {sorted(list(state.grey))}')
 
-        guess = get_guess(mode, valid_words, hard, state, round_number, rounds, debug)
+       #if we know all green spots, then there is no need to keep guessing
+        if state and len(list(filter(lambda x: x != ".",state.green))) == 5:
+            guess = "".join(state.green)
+        else:
+            guess = get_guess(mode, valid_words, grey, hard, state, round_number, rounds, debug)
 
         score = score_guess(guess, answer)
 
