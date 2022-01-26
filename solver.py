@@ -38,6 +38,8 @@ def score(guessable_words, candidate_words, state: State, debug):
     # If allowed (not in hard mode) this finds all the candidates for the remaining one or two letters so that
     # the next guess can be a word that includes the most of those letters possible.
     if state and state.green.count('.') <= 2:
+        if len(list(filter(lambda x: x != ".",state.green))) == 5:
+            return [("".join(state.green),0)] # we know this to be the correct answer
         vip_letters = set.union(*[{w for w,g in zip(word, state.green) if g == '.'} for word in candidate_words])
         if debug:
             print(f'vip letters: {vip_letters}')
