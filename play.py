@@ -65,7 +65,6 @@ def play(mode, answer, valid_words, hard, rounds, debug=False):
             print(f'total gray: {sorted(list(state.grey))}')
 
         guess = get_guess(mode, valid_words, hard, state, round_number, rounds, debug)
-
         score = score_guess(guess, answer)
 
         if mode in [Mode.PLAY, Mode.SOLVE]:
